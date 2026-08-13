@@ -89,7 +89,7 @@ jobs:
         run: |
           brew list ldid &>/dev/null || brew install ldid
 
-      - name: Build TIPA and xcframework
+      - name: Build IPA and xcframework
         id: build
         run: |
           set -euo pipefail
@@ -133,6 +133,7 @@ jobs:
             ARCHS=arm64 \
             ONLY_ACTIVE_ARCH=YES \
             CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             COMPILER_INDEX_STORE_ENABLE=NO \
             SWIFT_SERIALIZE_DEBUGGING_OPTIONS=NO
@@ -145,15 +146,15 @@ jobs:
           mkdir -p packages/Payload
           cp -rp "$APP_PATH" packages/Payload
           cd packages
-          zip -qr sing-box.tipa Payload
-          mv sing-box.tipa "$GITHUB_WORKSPACE/sing-box-${{ steps.resolve.outputs.tag_no_v }}.tipa"
+          zip -qr sing-box.ipa Payload
+          mv sing-box.ipa "$GITHUB_WORKSPACE/sing-box-${{ steps.resolve.outputs.tag_no_v }}.ipa"
           cd "$GITHUB_WORKSPACE"
 
           # Compute checksum for Package.swift
           checksum=$(shasum -a 256 Libbox.xcframework.zip | awk '{print $1}')
           echo "file_checksum=${checksum}" >> "$GITHUB_OUTPUT"
 
-          printf 'SHA256 Checksum:\n%s\n' "$(shasum -a 256 "sing-box-${{ steps.resolve.outputs.tag_no_v }}.tipa")" \
+          printf 'SHA256 Checksum:\n%s\n' "$(shasum -a 256 "sing-box-${{ steps.resolve.outputs.tag_no_v }}.ipa")" \
             >> "$GITHUB_STEP_SUMMARY"
 
       - name: Update Package.swift
@@ -172,7 +173,7 @@ jobs:
             targets: [
               .binaryTarget(
                 name: "Libbox",
-                url: "https://github.com/liujixings/sing-box-lib/releases/download/${{ steps.resolve.outputs.tag }}/Libbox.xcframework.zip",
+                url: "https://github.com/UyouZeca/sing-box-ios-build/releases/download/${{ steps.resolve.outputs.tag }}/Libbox.xcframework.zip",
                 checksum: "${{ steps.build.outputs.file_checksum }}"
               )
             ]
@@ -180,11 +181,9 @@ jobs:
           EOF
 
       - name: Commit manifest & tag
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "Libbox Release ${{ steps.resolve.outputs.tag }}"
-          commit_user_name: "liujixings"
-          commit_user_email: "liujixings@outlook.com"
           tagging_message: "${{ steps.resolve.outputs.tag }}"
           file_pattern: Package.swift
 
@@ -198,4 +197,4 @@ jobs:
           body: "Compiled from source tag: ${{ steps.resolve.outputs.tag }}"
           files: |
             Libbox.xcframework.zip
-            sing-box-*.tipa
+            sing-box-*.ipa
